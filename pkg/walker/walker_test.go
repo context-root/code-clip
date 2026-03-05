@@ -34,7 +34,7 @@ func TestWalkRespectsGitignore(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tempDir, "main.go"), []byte("package main\n"), 0644); err != nil {
 		t.Fatalf("Failed to write main.go: %v", err)
 	}
-	
+
 	secretDir := filepath.Join(tempDir, "secret")
 	if err := os.MkdirAll(secretDir, 0755); err != nil {
 		t.Fatalf("Failed to create secret dir: %v", err)
@@ -74,7 +74,7 @@ func TestWalkRespectsGitignore(t *testing.T) {
 	foundMain := false
 	foundSecret := false
 	foundDist := false
-	
+
 	for _, res := range results {
 		if res.RelativePath == "main.go" || filepath.Base(res.RelativePath) == "main.go" {
 			foundMain = true
@@ -132,7 +132,7 @@ func TestWalkRespectsAncestorIgnore(t *testing.T) {
 	if err := os.MkdirAll(nodeModulesDir, 0755); err != nil {
 		t.Fatalf("Failed to create node_modules dir: %v", err)
 	}
-	
+
 	if err := os.WriteFile(filepath.Join(nodeModulesDir, "index.js"), []byte("console.log('test')"), 0644); err != nil {
 		t.Fatalf("Failed to write index.js: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestWalkRespectsAncestorIgnore(t *testing.T) {
 		if res.Err != nil {
 			continue
 		}
-		
+
 		base := filepath.Base(res.RelativePath)
 		if base == "main.go" {
 			foundMain = true
@@ -196,7 +196,7 @@ func TestWalkMaxDepth(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tempDir, "d1.txt"), []byte("d1"), 0644); err != nil {
 		t.Fatalf("Failed to write file: %v", err)
 	}
-	
+
 	n1 := filepath.Join(tempDir, "nested1")
 	if err := os.MkdirAll(n1, 0755); err != nil {
 		t.Fatalf("Failed to create dir: %v", err)
@@ -227,15 +227,27 @@ func TestWalkMaxDepth(t *testing.T) {
 	foundD1 := false
 	foundD2 := false
 	foundD3 := false
-	
+
 	for res := range outChan {
 		base := filepath.Base(res.RelativePath)
-		if base == "d1.txt" { foundD1 = true }
-		if base == "d2.txt" { foundD2 = true }
-		if base == "d3.txt" { foundD3 = true }
+		if base == "d1.txt" {
+			foundD1 = true
+		}
+		if base == "d2.txt" {
+			foundD2 = true
+		}
+		if base == "d3.txt" {
+			foundD3 = true
+		}
 	}
 
-	if !foundD1 { t.Errorf("Expected to find d1.txt") }
-	if !foundD2 { t.Errorf("Expected to find d2.txt") }
-	if foundD3 { t.Errorf("Did not expect to find d3.txt (depth 3) with max depth 2") }
+	if !foundD1 {
+		t.Errorf("Expected to find d1.txt")
+	}
+	if !foundD2 {
+		t.Errorf("Expected to find d2.txt")
+	}
+	if foundD3 {
+		t.Errorf("Did not expect to find d3.txt (depth 3) with max depth 2")
+	}
 }
