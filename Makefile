@@ -22,5 +22,4 @@ install:
 
 # Clean the target directory 
 clean:
-	rm -rf bin
-	rm -f code-clip
+	rm bin/code-clip
