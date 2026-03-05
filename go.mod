@@ -1,6 +1,6 @@
 module code-clip
 
-go 1.24.1
+go 1.24
 
 require github.com/boyter/gocodewalker v1.5.1
 
