@@ -4,8 +4,7 @@
 *.dll
 *.so
 *.dylib
-bin/
-code-clip
+bin/code-clip
 
 # Test binary, built with `go test -c`
 *.test
