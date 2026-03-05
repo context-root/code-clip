@@ -166,7 +166,7 @@ func main() {
 	// Walk returns a channel of Results, which makes streaming to stdout immediate.
 	resultsChan, err := walker.Walk(opts.options)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error initializing walker: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -195,6 +195,10 @@ func main() {
 	// Rough rule of thumb: 1 token ≈ 4 characters of English text/code
 	if opts.printSummary {
 		estimatedTokens := totalChars / 4
-		fmt.Fprintf(os.Stderr, "[code-clip] Copied %d files (~%d tokens)\n", totalFiles, estimatedTokens)
+		fileWord := "files"
+		if totalFiles == 1 {
+			fileWord = "file"
+		}
+		fmt.Fprintf(os.Stderr, "Copied %d %s (~%d tokens)\n", totalFiles, fileWord, estimatedTokens)
 	}
 }

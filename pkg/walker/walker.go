@@ -41,17 +41,48 @@ type rootInfo struct {
 // Walk traverses the given paths, respecting .gitignore, hidden files,
 // and custom options. It returns a channel of Results.
 func Walk(opts Options) (<-chan Result, error) {
+	roots := buildRootInfos(opts.Paths)
+
+	var dirs []string
+	for _, p := range opts.Paths {
+		absPath, err := filepath.Abs(p)
+		if err != nil {
+			absPath = p
+		}
+
+		info, err := os.Stat(absPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil, fmt.Errorf("path %q does not exist", p)
+			}
+			return nil, fmt.Errorf("invalid path %q: %w", p, err)
+		}
+
+		if info.IsDir() {
+			dirs = append(dirs, absPath)
+		}
+	}
+
 	out := make(chan Result)
 
 	go func() {
 		defer close(out)
 
-		roots := buildRootInfos(opts.Paths)
-
-		if singleFile, ok := singleFilePath(opts.Paths); ok {
-			if res, ok := buildResult(singleFile, roots); ok {
-				out <- res
+		for _, p := range opts.Paths {
+			absPath, err := filepath.Abs(p)
+			if err != nil {
+				absPath = p
 			}
+
+			info, _ := os.Stat(absPath)
+			if !info.IsDir() {
+				if res, ok := buildResult(absPath, roots); ok {
+					out <- res
+				}
+			}
+		}
+
+		if len(dirs) == 0 {
 			return
 		}
 
@@ -59,7 +90,7 @@ func Walk(opts Options) (<-chan Result, error) {
 		errChan := make(chan error, 1)
 
 		// Configure gocodewalker for normal directory traversal
-		cw := gocodewalker.NewParallelFileWalker(opts.Paths, fileChan)
+		cw := gocodewalker.NewParallelFileWalker(dirs, fileChan)
 		cw.IgnoreGitIgnore = false
 		cw.IgnoreIgnoreFile = false
 		cw.IncludeHidden = false // Hidden files ignored by default if false
@@ -101,23 +132,6 @@ func Walk(opts Options) (<-chan Result, error) {
 	return out, nil
 }
 
-func singleFilePath(paths []string) (string, bool) {
-	if len(paths) != 1 {
-		return "", false
-	}
-
-	info, err := os.Stat(paths[0])
-	if err != nil || info.IsDir() {
-		return "", false
-	}
-
-	absPath, err := filepath.Abs(paths[0])
-	if err != nil {
-		return paths[0], true
-	}
-
-	return absPath, true
-}
 
 func buildRootInfos(paths []string) []rootInfo {
 	roots := make([]rootInfo, 0, len(paths))

@@ -251,3 +251,144 @@ func TestWalkMaxDepth(t *testing.T) {
 		t.Errorf("Did not expect to find d3.txt (depth 3) with max depth 2")
 	}
 }
+
+func TestWalkMultipleFiles(t *testing.T) {
+	// Setup a temporary directory structure
+	tempDir, err := os.MkdirTemp("", "codeclip-test-multiple")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	if err := os.WriteFile(filepath.Join(tempDir, "file1.txt"), []byte("file1"), 0644); err != nil {
+		t.Fatalf("Failed to write file1: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(tempDir, "file2.txt"), []byte("file2"), 0644); err != nil {
+		t.Fatalf("Failed to write file2: %v", err)
+	}
+
+	opts := walker.Options{
+		Paths:    []string{filepath.Join(tempDir, "file1.txt"), filepath.Join(tempDir, "file2.txt")},
+		MaxDepth: 0,
+		Format:   "plain",
+	}
+
+	outChan, err := walker.Walk(opts)
+	if err != nil {
+		t.Fatalf("Walk failed to start: %v", err)
+	}
+
+	var results []walker.Result
+	for res := range outChan {
+		if res.Err != nil {
+			t.Fatalf("Error during walk: %v", res.Err)
+		}
+		results = append(results, res)
+	}
+
+	if len(results) != 2 {
+		t.Fatalf("Expected 2 results, got %d", len(results))
+	}
+
+	foundFile1 := false
+	foundFile2 := false
+
+	for _, res := range results {
+		if res.RelativePath == "file1.txt" || filepath.Base(res.RelativePath) == "file1.txt" {
+			foundFile1 = true
+		}
+		if res.RelativePath == "file2.txt" || filepath.Base(res.RelativePath) == "file2.txt" {
+			foundFile2 = true
+		}
+	}
+
+	if !foundFile1 {
+		t.Errorf("Expected to find file1.txt")
+	}
+	if !foundFile2 {
+		t.Errorf("Expected to find file2.txt")
+	}
+}
+
+func TestWalkMixedPaths(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "codeclip-test-mixed")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	if err := os.WriteFile(filepath.Join(tempDir, "file1.txt"), []byte("file1"), 0644); err != nil {
+		t.Fatalf("Failed to write file1: %v", err)
+	}
+
+	nestedDir := filepath.Join(tempDir, "nested")
+	if err := os.MkdirAll(nestedDir, 0755); err != nil {
+		t.Fatalf("Failed to create nested dir: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(nestedDir, "file2.txt"), []byte("file2"), 0644); err != nil {
+		t.Fatalf("Failed to write file2: %v", err)
+	}
+
+	opts := walker.Options{
+		Paths:    []string{filepath.Join(tempDir, "file1.txt"), nestedDir},
+		MaxDepth: 0,
+		Format:   "plain",
+	}
+
+	outChan, err := walker.Walk(opts)
+	if err != nil {
+		t.Fatalf("Walk failed to start: %v", err)
+	}
+
+	foundFile1 := false
+	foundFile2 := false
+
+	for res := range outChan {
+		if res.Err != nil {
+			t.Fatalf("Error during walk: %v", res.Err)
+		}
+		if res.RelativePath == "file1.txt" || filepath.Base(res.RelativePath) == "file1.txt" {
+			foundFile1 = true
+		}
+		if res.RelativePath == "nested/file2.txt" || filepath.Base(res.RelativePath) == "file2.txt" {
+			foundFile2 = true
+		}
+	}
+
+	if !foundFile1 {
+		t.Errorf("Expected to find file1.txt from direct file argument")
+	}
+	if !foundFile2 {
+		t.Errorf("Expected to find file2.txt from directory traversal")
+	}
+}
+
+func TestWalkNonExistentPaths(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "codeclip-test-nonexistent")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	if err := os.WriteFile(filepath.Join(tempDir, "file1.txt"), []byte("file1"), 0644); err != nil {
+		t.Fatalf("Failed to write file1: %v", err)
+	}
+
+	// Deliberately use a non-existent path
+	opts := walker.Options{
+		Paths:    []string{filepath.Join(tempDir, "file1.txt"), filepath.Join(tempDir, "does-not-exist.txt")},
+		MaxDepth: 0,
+		Format:   "plain",
+	}
+
+	outChan, err := walker.Walk(opts)
+	if err == nil {
+		t.Fatalf("Expected Walk to return an error for does-not-exist.txt, but it didn't")
+	}
+
+	if outChan != nil {
+		t.Fatalf("Expected outChan to be nil when an error is returned")
+	}
+}

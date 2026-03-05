@@ -1,20 +1,49 @@
 # code-clip
 
-`code-clip` prints source files and formats them for LLM chat inputs (ChatGPT, Claude, etc.).
+`code-clip` prints source files and formats them for LLM chat inputs (ChatGPT, Claude, etc.) while respecting your `.gitignore`, `.ignore`, and `.cursorignore` files.
 
-What it does:
+<img src="https://storage.googleapis.com/omarish-media/code-clip/example.webp" alt="code-clip preview" style="max-height: 400px; width: auto;" />
+
+Use it like this:
 
 ```bash
-~/my-project $ code-clip . | pbcopy
+$ code-clip . | pbcopy
 Copied 7 files (~4251 tokens)
 ```
 
 It's designed for performance and with one thing in mind: to get the code you actually want to paste in to your LLM chat.
 
+What it actually does:
+
+````markdown
+$ code-clip .
+# src/main.go
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+ fmt.Println("Hello, World!")
+}
+```
+
+# src/utils/helpers.go
+
+```go
+package utils
+
+func Add(a, b int) int {
+ return a + b
+}
+```
+````
+
 Use `-o xml` for Claude and ChatGPT.
 
 ```bash
-~/my-project $ code-clip . -o xml | pbcopy
+$ code-clip . -o xml | pbcopy
 Copied 7 files (~4251 tokens)
 ```
 
